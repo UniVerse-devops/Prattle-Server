@@ -484,6 +484,11 @@ paths:
       description: Updates key material for the phone-number identity for all devices
         and sends a synchronization message to companion devices
       operationId: distributePhoneNumberIdentityKeys
+      parameters:
+      - name: User-Agent
+        in: header
+        schema:
+          type: string
       requestBody:
         content:
           application/json:
@@ -590,8 +595,10 @@ paths:
           description: Forbidden. The request had insufficient permissions to perform
             the requested action
         "401":
-          description: The provided backup auth credential presentation could not
-            be verified
+          description: |-
+            The provided backup auth credential presentation could not be verified or
+            The public key signature was invalid or
+            There is no backup associated with the backup-id in the presentation
         "400":
           description: Bad arguments. The request may have been made on an authenticated
             channel
@@ -634,8 +641,10 @@ paths:
           description: Forbidden. The request had insufficient permissions to perform
             the requested action
         "401":
-          description: The provided backup auth credential presentation could not
-            be verified
+          description: |-
+            The provided backup auth credential presentation could not be verified or
+            The public key signature was invalid or
+            There is no backup associated with the backup-id in the presentation
         "400":
           description: Bad arguments. The request may have been made on an authenticated
             channel
@@ -674,8 +683,10 @@ paths:
           description: Forbidden. The request had insufficient permissions to perform
             the requested action
         "401":
-          description: The provided backup auth credential presentation could not
-            be verified
+          description: |-
+            The provided backup auth credential presentation could not be verified or
+            The public key signature was invalid or
+            There is no backup associated with the backup-id in the presentation
         "400":
           description: Bad arguments. The request may have been made on an authenticated
             channel
@@ -733,8 +744,10 @@ paths:
           description: Forbidden. The request had insufficient permissions to perform
             the requested action
         "401":
-          description: The provided backup auth credential presentation could not
-            be verified
+          description: |-
+            The provided backup auth credential presentation could not be verified or
+            The public key signature was invalid or
+            There is no backup associated with the backup-id in the presentation
         "400":
           description: Bad arguments. The request may have been made on an authenticated
             channel
@@ -792,8 +805,10 @@ paths:
           description: Forbidden. The request had insufficient permissions to perform
             the requested action
         "401":
-          description: The provided backup auth credential presentation could not
-            be verified
+          description: |-
+            The provided backup auth credential presentation could not be verified or
+            The public key signature was invalid or
+            There is no backup associated with the backup-id in the presentation
       security:
       - authenticatedAccount: []
       - {}
@@ -849,8 +864,10 @@ paths:
           description: Forbidden. The request had insufficient permissions to perform
             the requested action
         "401":
-          description: The provided backup auth credential presentation could not
-            be verified
+          description: |-
+            The provided backup auth credential presentation could not be verified or
+            The public key signature was invalid or
+            There is no backup associated with the backup-id in the presentation
       security:
       - authenticatedAccount: []
       - {}
@@ -889,8 +906,10 @@ paths:
           description: Forbidden. The request had insufficient permissions to perform
             the requested action
         "401":
-          description: The provided backup auth credential presentation could not
-            be verified
+          description: |-
+            The provided backup auth credential presentation could not be verified or
+            The public key signature was invalid or
+            There is no backup associated with the backup-id in the presentation
         "400":
           description: Bad arguments. The request may have been made on an authenticated
             channel
@@ -970,8 +989,10 @@ paths:
           description: Forbidden. The request had insufficient permissions to perform
             the requested action
         "401":
-          description: The provided backup auth credential presentation could not
-            be verified
+          description: |-
+            The provided backup auth credential presentation could not be verified or
+            The public key signature was invalid or
+            There is no backup associated with the backup-id in the presentation
         "400":
           description: Bad arguments. The request may have been made on an authenticated
             channel
@@ -1046,8 +1067,10 @@ paths:
           description: Forbidden. The request had insufficient permissions to perform
             the requested action
         "401":
-          description: The provided backup auth credential presentation could not
-            be verified
+          description: |-
+            The provided backup auth credential presentation could not be verified or
+            The public key signature was invalid or
+            There is no backup associated with the backup-id in the presentation
         "400":
           description: Bad arguments. The request may have been made on an authenticated
             channel
@@ -1371,6 +1394,10 @@ paths:
         in: header
         schema:
           $ref: '#/components/schemas/BasicAuthorizationHeader'
+      - name: User-Agent
+        in: header
+        schema:
+          type: string
       requestBody:
         content:
           application/json:
@@ -1619,10 +1646,6 @@ paths:
           enum:
           - ACI
           - PNI
-      - name: User-Agent
-        in: header
-        schema:
-          type: string
       responses:
         "200":
           description: Body contains the number of available one-time prekeys for
@@ -1630,17 +1653,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  completedExceptionally:
-                    type: boolean
-                  numberOfDependents:
-                    type: integer
-                    format: int32
-                  done:
-                    type: boolean
-                  cancelled:
-                    type: boolean
+                $ref: '#/components/schemas/PreKeyCount'
         "401":
           description: Account authentication check failed.
       security:
@@ -1689,6 +1702,10 @@ paths:
             Upload a new signed elliptic-curve prekey for this device. Deprecated; use PUT /v2/keys instead.
       operationId: setSignedKey
       parameters:
+      - name: User-Agent
+        in: header
+        schema:
+          type: string
       - name: identity
         in: query
         schema:
@@ -3227,8 +3244,6 @@ components:
             format: int32
           description: "the new phone-number-identity registration ID for each enabled\
             \ device on the account, including this one"
-        signatureValidOnEachSignedPreKey:
-          type: boolean
         eachPniRegistrationIdValid:
           type: boolean
         valid:
@@ -3350,8 +3365,6 @@ components:
             format: int32
           description: "The new registration ID to use for the phone-number identity\
             \ of each device, including this one."
-        signatureValidOnEachSignedPreKey:
-          type: boolean
     AccountAndDevicesDataReport:
       type: object
       properties:
@@ -3447,17 +3460,23 @@ components:
       properties:
         cdn:
           type: integer
-          description: "If present, the CDN type where the message backup is stored"
+          description: The CDN type where the message backup is stored. Media may
+            be stored elsewhere.
           format: int32
         backupDir:
           type: string
           description: |
-            If present, the directory of your backup data on the cdn. The message backup can be found at /backupDir/backupName
-            and stored media can be found at /backupDir/media/mediaId.
+            The base directory of your backup data on the cdn. The message backup can be found in the returned cdn at
+            /backupDir/backupName and stored media can be found at /backupDir/mediaDir/mediaId
+        mediaDir:
+          type: string
+          description: |
+            The prefix path component for media objects on a cdn. Stored media for mediaId can be found at
+            /backupDir/mediaDir/mediaId.
         backupName:
           type: string
-          description: "If present, the name of the most recent message backup on\
-            \ the cdn. The backup is at /backupDir/backupName"
+          description: The name of the most recent message backup on the cdn. The
+            backup is at /backupDir/backupName
         usedSpace:
           type: integer
           description: The amount of space used to store media
@@ -3615,6 +3634,14 @@ components:
           description: A page of media objects stored for this backup ID
           items:
             $ref: '#/components/schemas/StoredMediaObject'
+        backupDir:
+          type: string
+          description: |
+            The base directory of your backup data on the cdn. The stored media can be found at /backupDir/mediaDir/mediaId
+        mediaDir:
+          type: string
+          description: |
+            The prefix path component for the media objects. The stored media for mediaId can be found at /backupDir/mediaDir/mediaId.
         cursor:
           type: string
           description: "If set, the cursor value to pass to the next list request\
@@ -4044,6 +4071,19 @@ components:
           items:
             type: string
             format: byte
+    PreKeyCount:
+      type: object
+      properties:
+        count:
+          type: integer
+          description: the number of stored unsigned elliptic-curve prekeys for this
+            device
+          format: int32
+        pqCount:
+          type: integer
+          description: the number of stored one-time post-quantum prekeys for this
+            device
+          format: int32
     SetKeysRequest:
       type: object
       properties:
@@ -4498,8 +4538,6 @@ components:
           $ref: '#/components/schemas/ApnRegistrationId'
         gcmToken:
           $ref: '#/components/schemas/GcmRegistrationId'
-        everySignedKeyValid:
-          type: boolean
         valid:
           type: boolean
     UserRemoteConfig:
